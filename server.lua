@@ -5,7 +5,11 @@ RegisterNetEvent('dj_console:broadcastMusic')
 AddEventHandler('dj_console:broadcastMusic', function(data)
     local src = source
     local now = GetGameTimer()
-    local range = 50.0
+    -- Raggio dinamico: master volume (0-1) → 20m..300m
+    -- Volume alto = locale pieno, copertura massima
+    -- Volume basso = musica soffusa, raggio ridotto
+    local vol = type(data.volume) == 'number' and math.max(0, math.min(1, data.volume)) or 0.5
+    local range = 20.0 + vol * 280.0
 
     -- Rate limiting: max 1 broadcast ogni 2 secondi per giocatore
     if broadcastCooldown[src] and (now - broadcastCooldown[src]) < COOLDOWN_MS then return end
