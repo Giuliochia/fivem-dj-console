@@ -54,32 +54,18 @@
             <div class="transport-row">
                 <button class="btn-cue btn-transport">CUE</button>
                 <button class="btn-playpause btn-transport" id="play-a" onclick="togglePlay('A')">▶/II</button>
-                <button class="btn-sync btn-transport" onclick="syncDeck('A')">SYNC</button>
-                <div class="tempo-display">
-                    <div class="tempo-label">TEMPO</div>
-                    <div class="tempo-val" id="pitch-val-a">0.0%</div>
-                </div>
-                <input type="range" class="pitch-mini" id="pitch-a" min="-8" max="8" value="0" step="0.1" oninput="updatePitch('A',this.value)">
+                <button class="btn-stop btn-transport" onclick="stopDeck('A')">STOP</button>
             </div>
 
             <div class="vinyl-area">
-                <div class="pb-group">
-                    <div class="pb-label">PITCH BEND</div>
-                    <div class="pb-btns">
-                        <button class="pb-btn" onmousedown="startBend('A',-1)" onmouseup="stopBend('A')" onmouseleave="stopBend('A')">−</button>
-                        <button class="pb-btn" onmousedown="startBend('A',1)" onmouseup="stopBend('A')" onmouseleave="stopBend('A')">+</button>
-                    </div>
-                </div>
                 <div class="turntable" id="turntable-a">
                     <div class="vinyl">
                         <div class="vinyl-inner">
                             <div class="vinyl-bpm" id="bpm-vinyl-a">--</div>
                             <div class="vinyl-bpm-label">BPM</div>
-                            <div class="vinyl-pitch" id="vinyl-pitch-a">+0.0% ±8</div>
                         </div>
                     </div>
                 </div>
-                <div class="range-info">RANGE<br>±8</div>
             </div>
 
             <div class="url-row">
@@ -108,10 +94,10 @@
                         <button class="loop-io-btn">OUT</button>
                     </div>
                     <div class="loop-sizes">
-                        <button class="loop-btn" onclick="setLoop(0.5,'A',this)">½</button>
                         <button class="loop-btn" onclick="setLoop(1,'A',this)">1</button>
-                        <button class="loop-btn" onclick="setLoop(2,'A',this)">2</button>
-                        <button class="loop-btn" onclick="setLoop(4,'A',this)">4</button>
+                        <button class="loop-btn" onclick="setLoop(0.5,'A',this)">½</button>
+                        <button class="loop-btn" onclick="setLoop(0.25,'A',this)">¼</button>
+                        <button class="loop-btn" onclick="setLoop(0.125,'A',this)">⅛</button>
                     </div>
                 </div>
             </div>
@@ -119,33 +105,6 @@
 
         <!-- MIXER -->
         <div class="mixer-panel">
-            <div class="eq-knob-grid">
-                <div class="eqg-corner"></div>
-                <div class="eqg-col-hdr deck-a-color">A</div>
-                <div class="eqg-col-hdr">·</div>
-                <div class="eqg-col-hdr deck-b-color">B</div>
-
-                <div class="eqg-row-lbl">TRIM</div>
-                <div class="knob" id="trim-a"   data-value="75"></div>
-                <div></div>
-                <div class="knob" id="trim-b"   data-value="75"></div>
-
-                <div class="eqg-row-lbl">HI</div>
-                <div class="knob" id="eq-hi-a"  data-value="75"></div>
-                <div class="knob knob-depth" id="fx-depth" data-value="75"></div>
-                <div class="knob" id="eq-hi-b"  data-value="75"></div>
-
-                <div class="eqg-row-lbl">MID</div>
-                <div class="knob" id="eq-mid-a" data-value="75"></div>
-                <div class="eqg-depth-lbl">DEPTH</div>
-                <div class="knob" id="eq-mid-b" data-value="75"></div>
-
-                <div class="eqg-row-lbl">LOW</div>
-                <div class="knob" id="eq-lo-a"  data-value="75"></div>
-                <div></div>
-                <div class="knob" id="eq-lo-b"  data-value="75"></div>
-            </div>
-
             <div class="fader-row">
                 <div class="ch-strip">
                     <div class="vu-col" id="vu-a">
@@ -189,20 +148,6 @@
                 <span class="cf-lbl">&gt; B</span>
             </div>
 
-            <div class="hp-section">
-                <div class="hp-label">HEADPHONES</div>
-                <div class="hp-row">
-                    <div class="knob-wrap-sm">
-                        <div class="knob" id="hp-cuemix" data-value="75"></div>
-                        <div class="knob-lbl">CUE MIX</div>
-                    </div>
-                    <div class="knob-wrap-sm">
-                        <div class="knob" id="hp-level" data-value="75"></div>
-                        <div class="knob-lbl">LEVEL</div>
-                    </div>
-                    <button class="hp-cue-btn">CUE</button>
-                </div>
-            </div>
         </div>
 
         <!-- DECK B -->
@@ -233,32 +178,18 @@
             <div class="transport-row">
                 <button class="btn-cue btn-transport">CUE</button>
                 <button class="btn-playpause btn-transport" id="play-b" onclick="togglePlay('B')">▶/II</button>
-                <button class="btn-sync btn-transport" onclick="syncDeck('B')">SYNC</button>
-                <div class="tempo-display">
-                    <div class="tempo-label">TEMPO</div>
-                    <div class="tempo-val" id="pitch-val-b">0.0%</div>
-                </div>
-                <input type="range" class="pitch-mini" id="pitch-b" min="-8" max="8" value="0" step="0.1" oninput="updatePitch('B',this.value)">
+                <button class="btn-stop btn-transport" onclick="stopDeck('B')">STOP</button>
             </div>
 
             <div class="vinyl-area">
-                <div class="pb-group">
-                    <div class="pb-label">PITCH BEND</div>
-                    <div class="pb-btns">
-                        <button class="pb-btn" onmousedown="startBend('B',-1)" onmouseup="stopBend('B')" onmouseleave="stopBend('B')">−</button>
-                        <button class="pb-btn" onmousedown="startBend('B',1)" onmouseup="stopBend('B')" onmouseleave="stopBend('B')">+</button>
-                    </div>
-                </div>
                 <div class="turntable" id="turntable-b">
                     <div class="vinyl">
                         <div class="vinyl-inner">
                             <div class="vinyl-bpm" id="bpm-vinyl-b">--</div>
                             <div class="vinyl-bpm-label">BPM</div>
-                            <div class="vinyl-pitch" id="vinyl-pitch-b">+0.0% ±8</div>
                         </div>
                     </div>
                 </div>
-                <div class="range-info">RANGE<br>±8</div>
             </div>
 
             <div class="url-row">
@@ -287,10 +218,10 @@
                         <button class="loop-io-btn">OUT</button>
                     </div>
                     <div class="loop-sizes">
-                        <button class="loop-btn" onclick="setLoop(0.5,'B',this)">½</button>
                         <button class="loop-btn" onclick="setLoop(1,'B',this)">1</button>
-                        <button class="loop-btn" onclick="setLoop(2,'B',this)">2</button>
-                        <button class="loop-btn" onclick="setLoop(4,'B',this)">4</button>
+                        <button class="loop-btn" onclick="setLoop(0.5,'B',this)">½</button>
+                        <button class="loop-btn" onclick="setLoop(0.25,'B',this)">¼</button>
+                        <button class="loop-btn" onclick="setLoop(0.125,'B',this)">⅛</button>
                     </div>
                 </div>
             </div>
@@ -314,21 +245,17 @@
             </div>
         </div>
 
-        <div class="fx-extended-panel">
-            <div class="panel-lbl">FX UNIT</div>
-            <div class="fxe-grid">
-                <button class="fx-btn" id="fx-echo"    onclick="toggleFX('echo')">ECHO</button>
-                <button class="fx-btn" id="fx-reverb"  onclick="toggleFX('reverb')">REVERB</button>
-                <button class="fx-btn" id="fx-filter"  onclick="toggleFX('filter')">FILTER</button>
-                <button class="fx-btn" id="fx-flanger" onclick="toggleFX('flanger')">FLANGER</button>
-                <button class="fx-btn" id="fx-phaser"  onclick="toggleFX('phaser')">PHASER</button>
-                <button class="fx-btn" id="fx-chorus"  onclick="toggleFX('chorus')">CHORUS</button>
-                <button class="fx-btn" id="fx-distort" onclick="toggleFX('distort')">DISTORT</button>
-                <button class="fx-btn" id="fx-gate"    onclick="toggleFX('gate')">GATE</button>
-            </div>
-            <div class="fxe-depth">
-                <span class="fxe-depth-lbl">DEPTH</span>
-                <div class="knob knob-depth" id="fx-depth" data-value="75"></div>
+        <div class="sampler-panel sampler-panel-extra">
+            <div class="panel-lbl">SAMPLER 2</div>
+            <div class="sampler-grid">
+                <button class="smp-btn" onclick="playSample('kick')">KICK</button>
+                <button class="smp-btn" onclick="playSample('snare')">SNARE</button>
+                <button class="smp-btn" onclick="playSample('hat')">HAT</button>
+                <button class="smp-btn" onclick="playSample('clap')">CLAP</button>
+                <button class="smp-btn" onclick="playSample('riser')">RISER</button>
+                <button class="smp-btn" onclick="playSample('impact')">IMPACT</button>
+                <button class="smp-btn" onclick="playSample('beep')">BEEP</button>
+                <button class="smp-btn" onclick="playSample('sub')">SUB</button>
             </div>
         </div>
     </div>

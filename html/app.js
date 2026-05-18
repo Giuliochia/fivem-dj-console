@@ -11,15 +11,12 @@ let broadcastActive = true;   // sempre attivo: il locale trasmette sempre
 let broadcastInterval = null;
 let vuRafId = null;
 
-const activeFX = { echo: false, reverb: false, flanger: false, filter: false, phaser: false, chorus: false, distort: false, gate: false };
-
 function makeDeck() {
     return {
         audio: null, source: null, gainNode: null,
-        eq: null, fxChain: null,
         analyser: null, analyserData: null,
         bpmAnalyser: null, bpmData: null,
-        playing: false, cueTime: 0, currentUrl: null, currentBPM: null,
+        playing: false, cueTime: 0, cueSet: false, currentUrl: null, currentBPM: null,
         loopActive: false, loopStart: 0, loopEnd: 0,
         cuePreview: false,
         bpmHistory: [], lastBeatTime: 0, lastEnergy: 0,
@@ -110,18 +107,10 @@ function playYouTube(deck, videoId) {
     });
 }
 
-// Attiva/disattiva la modalità visiva "YT MODE" sul deck:
-// - mostra badge nel nome traccia
-// - EQ e FX non applicabili → la sezione EQ viene dimmed
 function setYTMode(deck, active) {
     const dl      = deck.toLowerCase();
-    const eqSec   = document.querySelector(`.deck-${dl} .eq-section`);
     const nameBadge = document.getElementById(`track-name-${dl}`);
-    if (active) {
-        if (eqSec) { eqSec.style.opacity = '0.3'; eqSec.style.pointerEvents = 'none'; eqSec.title = 'EQ non disponibile in modalità YouTube'; }
-    } else {
-        if (eqSec) { eqSec.style.opacity = ''; eqSec.style.pointerEvents = ''; eqSec.title = ''; }
-    }
+    if (nameBadge) nameBadge.dataset.mode = active ? 'yt' : '';
 }
 
 function pauseYouTube(deck) {
@@ -137,6 +126,7 @@ function stopYouTube(deck) {
     d.playing    = false;
     d.isYouTube  = false;
     d.cueTime    = 0;
+    d.cueSet     = false;
     d.loopActive = false;
     setYTMode(deck, false);
     updateDeckUI(deck, false);
@@ -172,28 +162,16 @@ function initAudio() {
 }
 
 // ============================================================
-// Deck chain: gainNode → EQ (lo→mid→hi) → FX → analyser → masterGain
-//                                              ↘ bpmAnalyser
+// Deck chain: gainNode -> analyser -> masterGain
+//                       -> bpmAnalyser
 // ============================================================
 function teardownDeckChain(deck) {
     const d = decks[deck];
-    if (d.fxChain) {
-        try { d.fxChain.flanger.lfo.stop(); } catch {}
-        try { d.fxChain.phaser?.lfo.stop(); } catch {}
-        try { d.fxChain.chorus?.lfo.stop(); } catch {}
-        try { d.fxChain.gate?.lfo.stop(); } catch {}
-        try { d.fxChain.gate?.dc.stop(); } catch {}
-        try { d.fxChain.flanger.feedback.disconnect(); } catch {}
-        try { d.fxChain.input.disconnect(); } catch {}
-        try { d.fxChain.output.disconnect(); } catch {}
-    }
     // Disconnette l'analyser da masterGain — senza questo ogni rebuild
     // aggiunge un nodo in più al grafo audio senza mai rimuovere il precedente
     if (d.analyser) { try { d.analyser.disconnect(); } catch {} }
     if (d.gainNode)  { try { d.gainNode.disconnect();  } catch {} }
-    d.fxChain = null;
     d.gainNode = null;
-    d.eq = null;
     d.analyser = null;
     d.analyserData = null;
     d.bpmAnalyser = null;
@@ -207,23 +185,6 @@ function createDeckChain(deck) {
     const gainNode = ctx.createGain();
     gainNode.gain.value = loadPref(`vol${deck}`, 80) / 100;
 
-    // EQ – 3 biquad filters in serie
-    const hiFilter = ctx.createBiquadFilter();
-    hiFilter.type = 'highshelf';
-    hiFilter.frequency.value = 8000;
-
-    const midFilter = ctx.createBiquadFilter();
-    midFilter.type = 'peaking';
-    midFilter.frequency.value = 1000;
-    midFilter.Q.value = 1;
-
-    const loFilter = ctx.createBiquadFilter();
-    loFilter.type = 'lowshelf';
-    loFilter.frequency.value = 200;
-
-    // FX chain
-    const fxChain = buildFXChain();
-
     // VU analyser
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 512;
@@ -235,264 +196,19 @@ function createDeckChain(deck) {
     bpmAnalyser.smoothingTimeConstant = 0.3;
 
     // Connessioni
-    gainNode.connect(loFilter);
-    loFilter.connect(midFilter);
-    midFilter.connect(hiFilter);
-    hiFilter.connect(fxChain.input);
-    fxChain.output.connect(analyser);
-    fxChain.output.connect(bpmAnalyser);
+    gainNode.connect(analyser);
+    gainNode.connect(bpmAnalyser);
     analyser.connect(masterGain);
 
     d.gainNode = gainNode;
-    d.eq = { hi: hiFilter, mid: midFilter, lo: loFilter };
-    d.fxChain = fxChain;
     d.analyser = analyser;
     d.analyserData = new Uint8Array(analyser.frequencyBinCount);
     d.bpmAnalyser = bpmAnalyser;
     d.bpmData = new Uint8Array(bpmAnalyser.frequencyBinCount);
 
-    // Ripristina valori knob EQ attuali
-    ['hi', 'mid', 'lo'].forEach(band => {
-        const knob = document.getElementById(`eq-${band}-${deck.toLowerCase()}`);
-        if (knob) applyKnob(knob.id, parseInt(knob.dataset.value || 75));
-    });
-
-    // Ripristina FX attivi
-    Object.entries(activeFX).forEach(([name, active]) => {
-        if (active) applyFXToDeck(name, true, deck);
-    });
-
     // Applica crossfade corretto
     const volEl = document.getElementById(`vol-${deck.toLowerCase()}`);
     updateDeckVolume(deck, parseInt(volEl.value));
-}
-
-// ============================================================
-// Distortion curve helper (module scope so applyFXToDeck can use it)
-function makeDistCurve(amount) {
-    const n = 256, c = new Float32Array(n);
-    for (let i = 0; i < n; i++) {
-        const x = i * 2 / n - 1;
-        c[i] = (Math.PI + amount) * x / (Math.PI + amount * Math.abs(x));
-    }
-    return c;
-}
-
-// ============================================================
-// FX Chain builder
-// Architettura dry/wet parallela:
-//   input → dryGain   ──────────────────────────────┐
-//         → echoDelay → echoWet                     │
-//         → reverbNode → reverbWet                  ├→ output
-//         → flangerDelay → flangerWet               │
-//         → filterNode → filterWet                  │
-//                                                   ┘
-// ============================================================
-function buildFXChain() {
-    const input  = ctx.createGain();
-    const output = ctx.createGain();
-
-    // Dry path
-    const dryGain = ctx.createGain();
-    dryGain.gain.value = 1.0;
-    input.connect(dryGain);
-    dryGain.connect(output);
-
-    // ---- ECHO ----
-    const echoDelay = ctx.createDelay(2.0);
-    echoDelay.delayTime.value = 0.35;
-    const echoFeedback = ctx.createGain();
-    echoFeedback.gain.value = 0.4;
-    const echoWet = ctx.createGain();
-    echoWet.gain.value = 0;
-    input.connect(echoDelay);
-    echoDelay.connect(echoFeedback);
-    echoFeedback.connect(echoDelay);    // feedback loop
-    echoDelay.connect(echoWet);
-    echoWet.connect(output);
-
-    // ---- REVERB ----
-    const reverbNode = ctx.createConvolver();
-    reverbNode.buffer = buildImpulseResponse(2.5, 2.0);
-    const reverbWet = ctx.createGain();
-    reverbWet.gain.value = 0;
-    input.connect(reverbNode);
-    reverbNode.connect(reverbWet);
-    reverbWet.connect(output);
-
-    // ---- FLANGER ----
-    // Delay corto (1-5ms) modulato da un LFO sinusoidale a bassa frequenza
-    const flangerDelay = ctx.createDelay(0.05);
-    flangerDelay.delayTime.value = 0.003;
-    const flangerFeedback = ctx.createGain();
-    flangerFeedback.gain.value = 0.6;
-    const flangerWet = ctx.createGain();
-    flangerWet.gain.value = 0;
-    const flangerLFO = ctx.createOscillator();
-    flangerLFO.type = 'sine';
-    flangerLFO.frequency.value = 0.3;   // Hz
-    const flangerLFOGain = ctx.createGain();
-    flangerLFOGain.gain.value = 0.002;  // ampiezza delay in secondi
-    flangerLFO.connect(flangerLFOGain);
-    flangerLFOGain.connect(flangerDelay.delayTime);
-    flangerLFO.start();
-    input.connect(flangerDelay);
-    flangerDelay.connect(flangerFeedback);
-    flangerFeedback.connect(flangerDelay);
-    flangerDelay.connect(flangerWet);
-    flangerWet.connect(output);
-
-    // ---- FILTER ----
-    // Lowpass con risonanza: sostituisce il dry quando attivo
-    const filterNode = ctx.createBiquadFilter();
-    filterNode.type = 'lowpass';
-    filterNode.frequency.value = 800;
-    filterNode.Q.value = 8;
-    const filterWet = ctx.createGain();
-    filterWet.gain.value = 0;
-    input.connect(filterNode);
-    filterNode.connect(filterWet);
-    filterWet.connect(output);
-
-    // ---- PHASER ----
-    const phaserWet = ctx.createGain(); phaserWet.gain.value = 0;
-    const phaserFilters = [350, 700, 1400, 2800].map(f => {
-        const ap = ctx.createBiquadFilter(); ap.type = 'allpass'; ap.frequency.value = f; return ap;
-    });
-    phaserFilters.reduce((prev, curr) => { prev.connect(curr); return curr; }, input);
-    phaserFilters[phaserFilters.length - 1].connect(phaserWet);
-    phaserWet.connect(output);
-    const phaserLFO = ctx.createOscillator(); phaserLFO.type = 'sine'; phaserLFO.frequency.value = 0.5;
-    const phaserLFOGain = ctx.createGain(); phaserLFOGain.gain.value = 600;
-    phaserLFO.connect(phaserLFOGain);
-    phaserFilters.forEach(ap => phaserLFOGain.connect(ap.frequency));
-    phaserLFO.start();
-
-    // ---- CHORUS ----
-    const chorusDelay = ctx.createDelay(0.1);
-    chorusDelay.delayTime.value = 0.025;
-    const chorusWet = ctx.createGain(); chorusWet.gain.value = 0;
-    const chorusLFO = ctx.createOscillator(); chorusLFO.type = 'sine'; chorusLFO.frequency.value = 0.8;
-    const chorusLFOGain = ctx.createGain(); chorusLFOGain.gain.value = 0.006;
-    chorusLFO.connect(chorusLFOGain); chorusLFOGain.connect(chorusDelay.delayTime);
-    chorusLFO.start();
-    input.connect(chorusDelay); chorusDelay.connect(chorusWet); chorusWet.connect(output);
-
-    // ---- DISTORT ----
-    const distorter = ctx.createWaveShaper();
-    distorter.curve = makeDistCurve(200);
-    distorter.oversample = '4x';
-    const distWet = ctx.createGain(); distWet.gain.value = 0;
-    input.connect(distorter); distorter.connect(distWet); distWet.connect(output);
-
-    // ---- GATE (stutter) ----
-    const gateGain = ctx.createGain(); gateGain.gain.value = 0;
-    const gateWet  = ctx.createGain(); gateWet.gain.value  = 0;
-    const gateLFO  = ctx.createOscillator(); gateLFO.type = 'square'; gateLFO.frequency.value = 8;
-    const gateDC   = ctx.createConstantSource(); gateDC.offset.value = 0.5;
-    const gateScale = ctx.createGain(); gateScale.gain.value = 0.5;
-    gateLFO.connect(gateScale); gateScale.connect(gateGain.gain);
-    gateDC.connect(gateGain.gain);
-    gateDC.start(); gateLFO.start();
-    input.connect(gateGain); gateGain.connect(gateWet); gateWet.connect(output);
-
-    return {
-        input, output, dryGain,
-        echo:    { delay: echoDelay, feedback: echoFeedback, wet: echoWet },
-        reverb:  { node: reverbNode, wet: reverbWet },
-        flanger: { delay: flangerDelay, feedback: flangerFeedback, wet: flangerWet, lfo: flangerLFO },
-        filter:  { node: filterNode, wet: filterWet },
-        phaser:  { filters: phaserFilters, wet: phaserWet, lfo: phaserLFO },
-        chorus:  { delay: chorusDelay, wet: chorusWet, lfo: chorusLFO },
-        distort: { node: distorter, wet: distWet },
-        gate:    { gain: gateGain, wet: gateWet, lfo: gateLFO, dc: gateDC },
-    };
-}
-
-// Genera una risposta all'impulso sintetica per il reverb
-function buildImpulseResponse(duration, decay) {
-    const sr     = ctx.sampleRate;
-    const length = Math.floor(sr * duration);
-    const buf    = ctx.createBuffer(2, length, sr);
-    for (let c = 0; c < 2; c++) {
-        const ch = buf.getChannelData(c);
-        for (let i = 0; i < length; i++) {
-            ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
-        }
-    }
-    return buf;
-}
-
-// Ricalcola il dry gain considerando tutti gli FX attivi
-function recomputeDryGain(deck) {
-    const fx = decks[deck].fxChain;
-    if (!fx || !ctx) return;
-    let dry = 1.0;
-    if (activeFX.filter || activeFX.gate) {
-        dry = 0;
-    } else {
-        const depth = getFXDepth();
-        if (activeFX.echo)    dry -= depth * 0.3;
-        if (activeFX.reverb)  dry -= depth * 0.2;
-        if (activeFX.distort) dry -= depth * 0.5;
-    }
-    fx.dryGain.gain.setTargetAtTime(Math.max(0, dry), ctx.currentTime, 0.05);
-}
-
-function getFXDepth() {
-    const raw = parseInt(document.getElementById('fx-depth').dataset.value || 75);
-    return raw / 150;   // 0..1
-}
-
-function toggleFX(name) {
-    initAudio();
-    const btn = document.getElementById(`fx-${name}`);
-    btn.classList.toggle('active');
-    activeFX[name] = btn.classList.contains('active');
-    ['A', 'B'].forEach(deck => applyFXToDeck(name, activeFX[name], deck));
-}
-
-function applyFXToDeck(name, active, deck) {
-    const fx = decks[deck].fxChain;
-    if (!fx || !ctx) return;
-    const depth = getFXDepth();
-    const t     = ctx.currentTime;
-
-    if (name === 'echo') {
-        fx.echo.wet.gain.setTargetAtTime(active ? depth * 0.7 : 0, t, 0.05);
-    } else if (name === 'reverb') {
-        fx.reverb.wet.gain.setTargetAtTime(active ? depth * 0.6 : 0, t, 0.05);
-    } else if (name === 'flanger') {
-        fx.flanger.wet.gain.setTargetAtTime(active ? depth : 0, t, 0.05);
-    } else if (name === 'filter') {
-        if (active) {
-            const freq = 200 + depth * 7800;
-            fx.filter.node.frequency.setTargetAtTime(freq, t, 0.05);
-            fx.filter.wet.gain.setTargetAtTime(1.0, t, 0.05);
-        } else {
-            fx.filter.wet.gain.setTargetAtTime(0, t, 0.05);
-        }
-    } else if (name === 'phaser') {
-        fx.phaser.wet.gain.setTargetAtTime(active ? depth * 0.8 : 0, t, 0.05);
-    } else if (name === 'chorus') {
-        fx.chorus.wet.gain.setTargetAtTime(active ? depth * 0.7 : 0, t, 0.05);
-    } else if (name === 'distort') {
-        fx.distort.node.curve = makeDistCurve(50 + depth * 350);
-        fx.distort.wet.gain.setTargetAtTime(active ? Math.min(depth, 0.9) : 0, t, 0.05);
-    } else if (name === 'gate') {
-        fx.gate.lfo.frequency.setTargetAtTime(3 + depth * 13, t, 0.05);
-        fx.gate.wet.gain.setTargetAtTime(active ? 1.0 : 0, t, 0.05);
-    }
-    recomputeDryGain(deck);
-}
-
-// Chiamata quando il knob DEPTH cambia
-function onFXDepthChange() {
-    if (!ctx) return;
-    // applyFXToDeck gestisce già freq del filter internamente
-    Object.entries(activeFX).forEach(([name, active]) => {
-        if (active) ['A', 'B'].forEach(deck => applyFXToDeck(name, true, deck));
-    });
 }
 
 // ============================================================
@@ -518,6 +234,8 @@ function togglePlay(deck) {
         } else {
             if (d.currentUrl !== url) {
                 d.currentUrl = url;
+                d.cueTime = 0;
+                d.cueSet = false;
                 setTrackName(deck, 'YouTube', videoId);
                 addToHistory(deck, url);
                 d.bpmHistory = [];
@@ -549,6 +267,8 @@ function playDeck(deck, url) {
         d.audio          = new Audio();
         d.audio.src      = url;
         d.currentUrl     = url;
+        d.cueTime        = 0;
+        d.cueSet         = false;
         d.webAudioActive = false;
         setTrackName(deck, extractName(url), null);
         addToHistory(deck, url);
@@ -604,6 +324,7 @@ function stopDeck(deck) {
     if (d.audio) { d.audio.pause(); d.audio.currentTime = 0; }
     d.playing    = false;
     d.cueTime    = 0;
+    d.cueSet     = false;
     d.loopActive = false;
 
     updateDeckUI(deck, false);
@@ -649,9 +370,18 @@ function setupCueButtons() {
                 } else {
                     d.cueTime = d.audio ? d.audio.currentTime : 0;
                 }
+                d.cueSet = true;
                 btn.classList.add('active');
                 setTimeout(() => btn.classList.remove('active'), 300);
             } else if (d.currentUrl) {
+                if (!d.cueSet) {
+                    if (d.isYouTube && d.ytPlayer && typeof d.ytPlayer.getCurrentTime === 'function') {
+                        d.cueTime = d.ytPlayer.getCurrentTime() || 0;
+                    } else if (d.audio) {
+                        d.cueTime = d.audio.currentTime || 0;
+                    }
+                    d.cueSet = true;
+                }
                 // Avvia preview dal cue point
                 d.cuePreview = true;
                 if (d.isYouTube && d.ytPlayer && typeof d.ytPlayer.seekTo === 'function') {
@@ -751,61 +481,6 @@ function updateCrossfader(val) {
         if (decks[deck].isYouTube)           applyYTVolume(deck);
         else if (!decks[deck].webAudioActive) applyDirectVolume(deck);
     });
-}
-
-function updatePitch(deck, val) {
-    const f  = parseFloat(val);
-    const dl = deck.toLowerCase();
-    const label = `${f > 0 ? '+' : ''}${f.toFixed(1)}%`;
-    document.getElementById(`pitch-val-${dl}`).textContent  = label;
-    document.getElementById(`vinyl-pitch-${dl}`).textContent = label;
-    const d = decks[deck];
-    if (d.isYouTube) return;
-    if (d.audio) d.audio.playbackRate = 1 + f / 100;
-}
-
-// ============================================================
-// EQ Knobs (drag)
-// ============================================================
-document.querySelectorAll('.knob').forEach(knob => {
-    let startY, startVal;
-    knob.addEventListener('mousedown', e => {
-        startY   = e.clientY;
-        startVal = parseInt(knob.dataset.value || 75);
-        e.preventDefault();
-        const onMove = ev => {
-            const newVal = Math.max(0, Math.min(150, startVal + (startY - ev.clientY)));
-            knob.dataset.value = newVal;
-            const deg = (newVal / 150) * 270 - 135;
-            knob.style.transform = `rotate(${deg}deg)`;
-            applyKnob(knob.id, newVal);
-        };
-        const onUp = () => {
-            document.removeEventListener('mousemove', onMove);
-            document.removeEventListener('mouseup',   onUp);
-        };
-        document.addEventListener('mousemove', onMove);
-        document.addEventListener('mouseup',   onUp);
-    });
-    const initVal = parseInt(knob.dataset.value || 75);
-    knob.style.transform = `rotate(${(initVal / 150) * 270 - 135}deg)`;
-});
-
-function applyKnob(id, val) {
-    if (id === 'fx-depth') {
-        onFXDepthChange();
-        return;
-    }
-    // Formato: eq-{band}-{deck}  es. eq-hi-a
-    const parts = id.split('-');
-    const band  = parts[1];
-    const deck  = parts[2] ? parts[2].toUpperCase() : null;
-    if (!deck || !decks[deck] || !decks[deck].eq) return;
-    const gain = ((val - 75) / 75) * 12;   // -12dB … +12dB
-    const eq = decks[deck].eq;
-    if (band === 'hi')  eq.hi.gain.value  = gain;
-    else if (band === 'mid') eq.mid.gain.value = gain;
-    else if (band === 'lo')  eq.lo.gain.value  = gain;
 }
 
 // ============================================================
@@ -1203,43 +878,6 @@ function clearHotCue(deck, num) {
 }
 
 // ============================================================
-// SYNC – eguaglia BPM del deck al deck opposto
-// ============================================================
-function syncDeck(deck) {
-    const other = deck === 'A' ? 'B' : 'A';
-    const d = decks[deck], o = decks[other];
-    if (!o.currentBPM) { showToast('TAP BPM sull\'altro deck prima'); return; }
-    if (!d.currentBPM) { showToast('TAP BPM su questo deck prima'); return; }
-    if (d.isYouTube) { showToast('SYNC non disponibile su YouTube'); return; }
-    const ratio = o.currentBPM / d.currentBPM;
-    if (d.audio) d.audio.playbackRate = Math.max(0.5, Math.min(2, ratio));
-    const f = (ratio - 1) * 100;
-    document.getElementById(`pitch-val-${deck.toLowerCase()}`).textContent =
-        `${f >= 0 ? '+' : ''}${f.toFixed(1)}%`;
-}
-
-// ============================================================
-// Pitch Bend (mousedown/mouseup)
-// ============================================================
-const _bendTimers = {};
-function startBend(deck, dir) {
-    stopBend(deck);
-    _bendTimers[deck] = setInterval(() => {
-        const d = decks[deck];
-        if (!d.isYouTube && d.audio)
-            d.audio.playbackRate = Math.max(0.5, Math.min(2, d.audio.playbackRate + dir * 0.003));
-    }, 40);
-}
-function stopBend(deck) {
-    clearInterval(_bendTimers[deck]);
-    delete _bendTimers[deck];
-    const slider = document.getElementById(`pitch-${deck.toLowerCase()}`);
-    const d = decks[deck];
-    if (slider && d.audio && !d.isYouTube)
-        d.audio.playbackRate = 1 + parseFloat(slider.value) / 100;
-}
-
-// ============================================================
 // Waveform canvas
 // ============================================================
 const _waveCache = {};
@@ -1310,28 +948,6 @@ function drawCFCurve() {
     const mx = crossfadeValue * w;
     c.fillStyle = '#ff00aa';
     c.beginPath(); c.arc(mx, h / 2, 5, 0, Math.PI * 2); c.fill();
-}
-
-// ============================================================
-// Global EQ (master output)
-// ============================================================
-let _globalEQ = null;
-function _initGlobalEQ() {
-    if (!ctx || _globalEQ) return;
-    const lo = ctx.createBiquadFilter(); lo.type = 'lowshelf'; lo.frequency.value = 200;
-    const mid = ctx.createBiquadFilter(); mid.type = 'peaking'; mid.frequency.value = 1000; mid.Q.value = 0.5;
-    const hi = ctx.createBiquadFilter(); hi.type = 'highshelf'; hi.frequency.value = 8000;
-    masterGain.disconnect();
-    masterGain.connect(lo); lo.connect(mid); mid.connect(hi); hi.connect(ctx.destination);
-    _globalEQ = { lo, mid, hi };
-}
-function applyGlobalEQ() {
-    if (!ctx) return;
-    _initGlobalEQ();
-    if (!_globalEQ) return;
-    _globalEQ.lo.gain.value  = parseFloat(document.getElementById('geq-lo').value);
-    _globalEQ.mid.gain.value = parseFloat(document.getElementById('geq-mid').value);
-    _globalEQ.hi.gain.value  = parseFloat(document.getElementById('geq-hi').value);
 }
 
 // ============================================================
@@ -1420,7 +1036,7 @@ function playSample(name) {
             });
         },
         rewind: () => {
-            // Noise + rising pitch = "rewind" effect
+            // Noise + rising tone = "rewind" effect
             const o = ctx.createOscillator(); o.type = 'sawtooth';
             o.frequency.setValueAtTime(60, t); o.frequency.exponentialRampToValueAtTime(1200, t + 0.7);
             const buf = ctx.createBuffer(1, ctx.sampleRate * 0.7, ctx.sampleRate);
@@ -1429,6 +1045,90 @@ function playSample(name) {
             o.connect(g); ns.connect(g);
             g.gain.setValueAtTime(0.75, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
             o.start(t); o.stop(t + 0.7); ns.start(t);
+        },
+        kick: () => {
+            const o = ctx.createOscillator();
+            o.frequency.setValueAtTime(140, t);
+            o.frequency.exponentialRampToValueAtTime(42, t + 0.18);
+            o.connect(g);
+            g.gain.setValueAtTime(1, t);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+            o.start(t); o.stop(t + 0.24);
+        },
+        snare: () => {
+            const buf = ctx.createBuffer(1, ctx.sampleRate * 0.18, ctx.sampleRate);
+            const bd = buf.getChannelData(0);
+            for (let i = 0; i < bd.length; i++) bd[i] = Math.random() * 2 - 1;
+            const s = ctx.createBufferSource(); s.buffer = buf;
+            const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 900;
+            const o = ctx.createOscillator(); o.frequency.value = 180;
+            s.connect(f); f.connect(g); o.connect(g);
+            g.gain.setValueAtTime(0.8, t);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+            s.start(t); o.start(t); o.stop(t + 0.08);
+        },
+        hat: () => {
+            const buf = ctx.createBuffer(1, ctx.sampleRate * 0.08, ctx.sampleRate);
+            const bd = buf.getChannelData(0);
+            for (let i = 0; i < bd.length; i++) bd[i] = Math.random() * 2 - 1;
+            const s = ctx.createBufferSource(); s.buffer = buf;
+            const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 6000;
+            s.connect(f); f.connect(g);
+            g.gain.setValueAtTime(0.45, t);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+            s.start(t);
+        },
+        clap: () => {
+            [0, 0.018, 0.036].forEach(off => {
+                const buf = ctx.createBuffer(1, ctx.sampleRate * 0.09, ctx.sampleRate);
+                const bd = buf.getChannelData(0);
+                for (let i = 0; i < bd.length; i++) bd[i] = Math.random() * 2 - 1;
+                const s = ctx.createBufferSource(); s.buffer = buf;
+                const ag = ctx.createGain();
+                ag.gain.setValueAtTime(0.35, t + off);
+                ag.gain.exponentialRampToValueAtTime(0.001, t + off + 0.09);
+                s.connect(ag); ag.connect(ctx.destination); s.start(t + off);
+            });
+        },
+        riser: () => {
+            const o = ctx.createOscillator(); o.type = 'sawtooth';
+            o.frequency.setValueAtTime(160, t);
+            o.frequency.exponentialRampToValueAtTime(1800, t + 1.2);
+            o.connect(g);
+            g.gain.setValueAtTime(0.001, t);
+            g.gain.linearRampToValueAtTime(0.65, t + 1.1);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 1.25);
+            o.start(t); o.stop(t + 1.25);
+        },
+        impact: () => {
+            const o = ctx.createOscillator();
+            o.frequency.setValueAtTime(90, t);
+            o.frequency.exponentialRampToValueAtTime(26, t + 0.55);
+            const buf = ctx.createBuffer(1, ctx.sampleRate * 0.35, ctx.sampleRate);
+            const bd = buf.getChannelData(0);
+            for (let i = 0; i < bd.length; i++) bd[i] = (Math.random() * 2 - 1) * (1 - i / bd.length);
+            const s = ctx.createBufferSource(); s.buffer = buf;
+            o.connect(g); s.connect(g);
+            g.gain.setValueAtTime(0.95, t);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+            o.start(t); o.stop(t + 0.6); s.start(t);
+        },
+        beep: () => {
+            [0, 0.12, 0.24].forEach(off => {
+                const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = 1200;
+                const ag = ctx.createGain();
+                ag.gain.setValueAtTime(0.35, t + off);
+                ag.gain.exponentialRampToValueAtTime(0.001, t + off + 0.06);
+                o.connect(ag); ag.connect(ctx.destination); o.start(t + off); o.stop(t + off + 0.06);
+            });
+        },
+        sub: () => {
+            const o = ctx.createOscillator();
+            o.frequency.value = 48;
+            o.connect(g);
+            g.gain.setValueAtTime(0.9, t);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+            o.start(t); o.stop(t + 0.45);
         },
     };
     if (defs[name]) defs[name]();
