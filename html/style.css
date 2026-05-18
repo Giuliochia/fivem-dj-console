@@ -1,0 +1,689 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+}
+
+body {
+    background: transparent;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-family: 'Share Tech Mono', monospace;
+    overflow: hidden;
+}
+
+.hidden { display: none !important; }
+
+/* ===================== CONSOLE PRINCIPALE ===================== */
+#dj-console {
+    width: 960px;
+    background: linear-gradient(160deg, #1a1a2e 0%, #0d0d1a 60%, #0a0a14 100%);
+    border: 2px solid #2a2a4a;
+    border-radius: 16px;
+    box-shadow:
+        0 0 60px rgba(0,200,255,0.15),
+        0 0 120px rgba(150,0,255,0.08),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+    overflow: hidden;
+}
+
+/* ===================== HEADER ===================== */
+.console-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background: linear-gradient(90deg, #0d0d1a, #1a0a2e, #0d0d1a);
+    border-bottom: 2px solid #00c8ff33;
+}
+
+.brand {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: 18px;
+    color: #00c8ff;
+    text-shadow: 0 0 20px #00c8ff, 0 0 40px #00c8ff44;
+    letter-spacing: 4px;
+}
+
+.close-btn {
+    background: #ff003344;
+    border: 1px solid #ff003388;
+    color: #ff4466;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+.close-btn:hover {
+    background: #ff0033;
+    color: white;
+    box-shadow: 0 0 12px #ff0033;
+}
+
+/* ===================== BODY ===================== */
+.console-body {
+    display: flex;
+    gap: 0;
+    padding: 16px;
+    align-items: flex-start;
+}
+
+/* ===================== DECK ===================== */
+.deck {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    background: linear-gradient(180deg, #12122a 0%, #0c0c1e 100%);
+    border-radius: 12px;
+    border: 1px solid #2a2a4a;
+    position: relative;
+}
+
+.deck-a { border-color: #0088ff44; box-shadow: inset 0 0 30px #0088ff08; }
+.deck-b { border-color: #ff440044; box-shadow: inset 0 0 30px #ff440008; }
+
+.deck-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: #aaa;
+}
+.deck-a .deck-label { color: #0088ff; text-shadow: 0 0 10px #0088ff; }
+.deck-b .deck-label { color: #ff4400; text-shadow: 0 0 10px #ff4400; }
+
+/* ===================== GIRADISCHI ===================== */
+.turntable-wrapper {
+    position: relative;
+    width: 160px;
+    height: 160px;
+}
+
+.turntable {
+    width: 160px;
+    height: 160px;
+    position: relative;
+}
+
+.vinyl {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: conic-gradient(
+        #1a1a1a 0deg, #2a2a2a 10deg, #1a1a1a 20deg, #2a2a2a 30deg,
+        #1a1a1a 40deg, #2a2a2a 50deg, #1a1a1a 60deg, #2a2a2a 70deg,
+        #1a1a1a 80deg, #2a2a2a 90deg, #1a1a1a 100deg, #2a2a2a 110deg,
+        #1a1a1a 120deg, #2a2a2a 130deg, #1a1a1a 140deg, #2a2a2a 150deg,
+        #1a1a1a 160deg, #2a2a2a 170deg, #1a1a1a 180deg, #2a2a2a 190deg,
+        #1a1a1a 200deg, #2a2a2a 210deg, #1a1a1a 220deg, #2a2a2a 230deg,
+        #1a1a1a 240deg, #2a2a2a 250deg, #1a1a1a 260deg, #2a2a2a 270deg,
+        #1a1a1a 280deg, #2a2a2a 290deg, #1a1a1a 300deg, #2a2a2a 310deg,
+        #1a1a1a 320deg, #2a2a2a 330deg, #1a1a1a 340deg, #2a2a2a 350deg,
+        #1a1a1a 360deg
+    );
+    box-shadow:
+        0 0 0 2px #333,
+        0 0 0 4px #111,
+        0 4px 20px rgba(0,0,0,0.8);
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s;
+}
+
+.vinyl-label {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1e0044, #44003a);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4px;
+    border: 2px solid #6600aa44;
+    z-index: 2;
+}
+
+.vinyl-label span {
+    font-size: 7px;
+    color: #cc88ff;
+    max-width: 50px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+}
+
+.vinyl-hole {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #0d0d1a;
+    position: absolute;
+    box-shadow: inset 0 0 3px rgba(0,0,0,0.8);
+    z-index: 3;
+}
+
+.platter-base {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #222 0%, #111 70%, #0a0a0a 100%);
+    border: 3px solid #333;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -1;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+}
+
+.tonearm {
+    width: 3px;
+    height: 55px;
+    background: linear-gradient(180deg, #aaa, #666);
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    transform-origin: top center;
+    transform: rotate(20deg);
+    border-radius: 2px;
+    z-index: 10;
+    transition: transform 0.5s ease;
+    box-shadow: 0 0 6px rgba(0,0,0,0.5);
+}
+.tonearm::after {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: #666;
+    border-radius: 50%;
+    position: absolute;
+    bottom: -4px;
+    left: -2.5px;
+}
+
+/* Animazione giradischi */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+.vinyl.spinning {
+    animation: spin 2s linear infinite;
+}
+.vinyl.spinning + .vinyl-hole { /* keep hole centered */ }
+
+/* ===================== TRACK INFO ===================== */
+.track-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    justify-content: center;
+}
+
+.bpm-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #0a0a18;
+    border: 1px solid #2a2a4a;
+    border-radius: 6px;
+    padding: 4px 8px;
+}
+.bpm-display .label { font-size: 8px; color: #666; }
+.bpm-display .value { font-size: 16px; color: #00ff88; text-shadow: 0 0 8px #00ff88; font-family: 'Orbitron', monospace; }
+
+.time-display {
+    font-family: 'Orbitron', monospace;
+    font-size: 20px;
+    color: #ff8800;
+    text-shadow: 0 0 10px #ff880066;
+    background: #0a0a18;
+    border: 1px solid #2a2a4a;
+    border-radius: 6px;
+    padding: 4px 10px;
+}
+
+/* ===================== URL INPUT ===================== */
+.url-input-group {
+    width: 100%;
+}
+
+.url-input {
+    width: 100%;
+    background: #08081a;
+    border: 1px solid #2a2a4a;
+    border-radius: 6px;
+    color: #88aaff;
+    padding: 6px 10px;
+    font-size: 10px;
+    font-family: 'Share Tech Mono', monospace;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.url-input:focus { border-color: #4488ff; box-shadow: 0 0 8px #4488ff33; }
+.url-input::placeholder { color: #334; }
+
+/* ===================== CONTROLLI DECK ===================== */
+.deck-controls {
+    display: flex;
+    gap: 6px;
+}
+
+.btn-deck {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    font-weight: bold;
+    transition: all 0.15s;
+    letter-spacing: 1px;
+}
+
+.btn-cue {
+    background: #1a1a00;
+    border-color: #ffaa00;
+    color: #ffaa00;
+}
+.btn-cue:hover, .btn-cue.active {
+    background: #ffaa00;
+    color: #000;
+    box-shadow: 0 0 12px #ffaa00;
+}
+
+.btn-play {
+    background: #001a00;
+    border-color: #00ff44;
+    color: #00ff44;
+}
+.btn-play:hover, .btn-play.active {
+    background: #00ff44;
+    color: #000;
+    box-shadow: 0 0 12px #00ff44;
+}
+
+.btn-stop {
+    background: #1a0000;
+    border-color: #ff2200;
+    color: #ff2200;
+}
+.btn-stop:hover {
+    background: #ff2200;
+    color: #fff;
+    box-shadow: 0 0 12px #ff2200;
+}
+
+/* ===================== PITCH ===================== */
+.pitch-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+.pitch-control .label { font-size: 10px; color: #666; min-width: 30px; }
+.pitch-value { font-size: 10px; color: #00c8ff; min-width: 30px; text-align: right; }
+
+.pitch-slider {
+    -webkit-appearance: none;
+    flex: 1;
+    height: 4px;
+    background: linear-gradient(90deg, #ff4400, #1a1a2e, #00ff88);
+    border-radius: 2px;
+    outline: none;
+}
+.pitch-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid #00c8ff;
+    cursor: pointer;
+    box-shadow: 0 0 8px #00c8ff;
+}
+
+/* ===================== EQ ===================== */
+.eq-section { width: 100%; }
+
+.eq-knob-group {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+}
+
+.knob-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+.knob-wrap span { font-size: 9px; color: #666; letter-spacing: 1px; }
+
+.knob {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #3a3a5a, #1a1a2e);
+    border: 2px solid #3a3a5a;
+    cursor: pointer;
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+    transition: box-shadow 0.2s;
+}
+.knob::after {
+    content: '';
+    width: 3px;
+    height: 12px;
+    background: #00c8ff;
+    border-radius: 2px;
+    position: absolute;
+    top: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    transform-origin: bottom center;
+    box-shadow: 0 0 6px #00c8ff;
+}
+.knob:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.5), 0 0 12px #00c8ff44, inset 0 1px 0 rgba(255,255,255,0.05); }
+
+/* ===================== VOLUME FADER ===================== */
+.fader-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+.fader-section .label { font-size: 9px; color: #666; }
+
+.volume-fader.vertical {
+    -webkit-appearance: none;
+    writing-mode: vertical-lr;
+    direction: rtl;
+    width: 20px;
+    height: 70px;
+    background: linear-gradient(180deg, #00ff88, #00aa44 40%, #1a1a2e 40%);
+    border-radius: 10px;
+    outline: none;
+    cursor: pointer;
+}
+.volume-fader.vertical::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 28px;
+    height: 12px;
+    border-radius: 4px;
+    background: linear-gradient(180deg, #ddd, #aaa);
+    border: 1px solid #888;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+
+/* ===================== MIXER ===================== */
+.mixer {
+    width: 200px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 10px;
+    background: linear-gradient(180deg, #0e0e20 0%, #0a0a16 100%);
+    border-radius: 12px;
+    border: 1px solid #3a1a5a44;
+    box-shadow: inset 0 0 30px rgba(150,0,255,0.05);
+    margin: 0 8px;
+}
+
+.mixer-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: #9900ff;
+    text-shadow: 0 0 10px #9900ff;
+}
+
+/* VU Meters */
+.vu-meters {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.vu-meter {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 2px;
+    width: 16px;
+}
+
+.vu-bar {
+    width: 100%;
+    height: 8px;
+    border-radius: 2px;
+    background: #1a1a2e;
+    transition: background 0.05s;
+}
+
+.vu-bar.active-green { background: #00ff44; box-shadow: 0 0 4px #00ff44; }
+.vu-bar.active-yellow { background: #ffaa00; box-shadow: 0 0 4px #ffaa00; }
+.vu-bar.active-red { background: #ff2200; box-shadow: 0 0 4px #ff2200; }
+
+/* Crossfader */
+.crossfader-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.master-vol {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+.master-vol .label { font-size: 9px; color: #9900ff; letter-spacing: 1px; }
+
+.master-fader { height: 80px !important; }
+
+.crossfader-wrap {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.cf-labels {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    font-size: 10px;
+    color: #666;
+    padding: 0 4px;
+}
+
+.crossfader {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 8px;
+    background: linear-gradient(90deg, #0044ff44, #1a1a2e, #ff440044);
+    border-radius: 4px;
+    outline: none;
+    border: 1px solid #3a3a5a;
+}
+.crossfader::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    background: linear-gradient(180deg, #ddd, #999);
+    border: 1px solid #666;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+.cf-indicator {
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    color: #9900ff;
+    letter-spacing: 1px;
+}
+
+/* ===================== EFFETTI ===================== */
+.effects-section {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    background: #0a0a14;
+    border: 1px solid #2a2a3a;
+    border-radius: 8px;
+    padding: 8px;
+}
+
+.effects-label, .loop-label {
+    font-size: 9px;
+    color: #666;
+    letter-spacing: 2px;
+}
+
+.fx-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    width: 100%;
+}
+
+.fx-btn {
+    padding: 5px 4px;
+    background: #1a1a2e;
+    border: 1px solid #3a3a5a;
+    border-radius: 4px;
+    color: #666;
+    font-size: 9px;
+    font-family: 'Share Tech Mono', monospace;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 1px;
+}
+.fx-btn:hover { border-color: #9900ff; color: #cc66ff; }
+.fx-btn.active {
+    background: #1a0033;
+    border-color: #9900ff;
+    color: #cc66ff;
+    box-shadow: 0 0 8px #9900ff44;
+}
+
+.fx-knob-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+.fx-knob-wrap .label { font-size: 9px; color: #666; }
+
+/* ===================== LOOP ===================== */
+.loop-section {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    background: #0a0a14;
+    border: 1px solid #2a2a3a;
+    border-radius: 8px;
+    padding: 8px;
+}
+
+.loop-buttons {
+    display: flex;
+    gap: 4px;
+}
+
+.loop-btn {
+    width: 28px;
+    height: 24px;
+    background: #1a1a2e;
+    border: 1px solid #3a3a5a;
+    border-radius: 4px;
+    color: #666;
+    font-size: 10px;
+    font-family: 'Share Tech Mono', monospace;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.loop-btn:hover { border-color: #00ff88; color: #00ff88; }
+.loop-btn.active {
+    background: #001a0a;
+    border-color: #00ff88;
+    color: #00ff88;
+    box-shadow: 0 0 8px #00ff8844;
+}
+
+/* ===================== BROADCAST ===================== */
+.broadcast-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+}
+
+.broadcast-btn {
+    width: 100%;
+    padding: 8px;
+    background: #1a0000;
+    border: 1px solid #ff2200;
+    border-radius: 8px;
+    color: #ff2200;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+}
+.broadcast-btn:hover {
+    background: #330000;
+    box-shadow: 0 0 12px #ff220044;
+}
+.broadcast-btn.active {
+    background: #ff2200;
+    color: #fff;
+    box-shadow: 0 0 20px #ff2200;
+    animation: pulse-broadcast 1s infinite;
+}
+
+@keyframes pulse-broadcast {
+    0%, 100% { box-shadow: 0 0 12px #ff2200; }
+    50% { box-shadow: 0 0 24px #ff2200, 0 0 40px #ff220055; }
+}
+
+.broadcast-status {
+    font-size: 9px;
+    color: #444;
+    letter-spacing: 2px;
+    font-family: 'Orbitron', monospace;
+}
+.broadcast-status.on { color: #ff2200; text-shadow: 0 0 8px #ff2200; }
+
+/* ===================== SCROLLBAR ===================== */
+::-webkit-scrollbar { display: none; }

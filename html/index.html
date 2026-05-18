@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DJ Console</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="dj-console" class="hidden">
+
+        <!-- Header -->
+        <div class="console-header">
+            <div class="brand">🎧 DJ CONSOLE PRO</div>
+            <button class="close-btn" onclick="closeConsole()">✕</button>
+        </div>
+
+        <div class="console-body">
+
+            <!-- DECK A (sinistra) -->
+            <div class="deck deck-a">
+                <div class="deck-label">DECK A</div>
+
+                <!-- Giradischi -->
+                <div class="turntable-wrapper">
+                    <div class="turntable" id="turntable-a">
+                        <div class="vinyl">
+                            <div class="vinyl-label">
+                                <span id="track-name-a">NO TRACK</span>
+                            </div>
+                            <div class="vinyl-hole"></div>
+                            <div class="tonearm" id="tonearm-a"></div>
+                        </div>
+                        <div class="platter-base"></div>
+                    </div>
+                </div>
+
+                <!-- Info traccia -->
+                <div class="track-info">
+                    <div class="bpm-display">
+                        <span class="label">BPM</span>
+                        <span class="value" id="bpm-a">--</span>
+                    </div>
+                    <div class="time-display" id="time-a">0:00</div>
+                </div>
+
+                <!-- URL Input con history (datalist) -->
+                <div class="url-input-group">
+                    <input type="text" id="url-a" class="url-input"
+                           placeholder="URL Stream (radio, mp3...)"
+                           list="history-a" autocomplete="off">
+                    <datalist id="history-a"></datalist>
+                </div>
+
+                <!-- Controlli deck -->
+                <div class="deck-controls">
+                    <!-- CUE: onclick rimosso, gestito via JS mousedown/mouseup -->
+                    <button class="btn-deck btn-cue">CUE</button>
+                    <button class="btn-deck btn-play" id="play-a" onclick="togglePlay('A')">▶ PLAY</button>
+                    <button class="btn-deck btn-stop" onclick="stopDeck('A')">■ STOP</button>
+                </div>
+
+                <!-- Pitch slider -->
+                <div class="pitch-control">
+                    <span class="label">PITCH</span>
+                    <input type="range" class="pitch-slider" id="pitch-a"
+                           min="-8" max="8" value="0" step="0.1"
+                           oninput="updatePitch('A', this.value)">
+                    <span class="pitch-value" id="pitch-val-a">0%</span>
+                </div>
+
+                <!-- EQ Deck A -->
+                <div class="eq-section">
+                    <div class="eq-knob-group">
+                        <div class="knob-wrap">
+                            <div class="knob" id="eq-hi-a" data-value="75"></div>
+                            <span>HI</span>
+                        </div>
+                        <div class="knob-wrap">
+                            <div class="knob" id="eq-mid-a" data-value="75"></div>
+                            <span>MID</span>
+                        </div>
+                        <div class="knob-wrap">
+                            <div class="knob" id="eq-lo-a" data-value="75"></div>
+                            <span>LO</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Volume fader deck A -->
+                <div class="fader-section">
+                    <span class="label">VOL</span>
+                    <input type="range" class="volume-fader vertical" id="vol-a"
+                           min="0" max="100" value="80"
+                           oninput="updateDeckVolume('A', this.value)">
+                </div>
+            </div>
+
+            <!-- MIXER CENTRALE -->
+            <div class="mixer">
+                <div class="mixer-label">MIXER</div>
+
+                <!-- VU Meters + Master -->
+                <div class="crossfader-section">
+                    <div class="vu-meters">
+                        <div class="vu-meter" id="vu-a">
+                            <div class="vu-bar"></div><div class="vu-bar"></div>
+                            <div class="vu-bar"></div><div class="vu-bar"></div>
+                            <div class="vu-bar"></div><div class="vu-bar"></div>
+                            <div class="vu-bar"></div><div class="vu-bar"></div>
+                        </div>
+                        <div class="vu-meter" id="vu-b">
+                            <div class="vu-bar"></div><div class="vu-bar"></div>
+                            <div class="vu-bar"></div><div class="vu-bar"></div>
+                            <div class="vu-bar"></div><div class="vu-bar"></div>
+                            <div class="vu-bar"></div><div class="vu-bar"></div>
+                        </div>
+                    </div>
+
+                    <div class="master-vol">
+                        <span class="label">MASTER</span>
+                        <input type="range" class="volume-fader vertical master-fader" id="master-vol"
+                               min="0" max="100" value="80"
+                               oninput="updateMasterVolume(this.value)">
+                    </div>
+
+                    <div class="crossfader-wrap">
+                        <div class="cf-labels">
+                            <span>A</span>
+                            <span>B</span>
+                        </div>
+                        <input type="range" class="crossfader" id="crossfader"
+                               min="0" max="100" value="50"
+                               oninput="updateCrossfader(this.value)">
+                        <div class="cf-indicator">
+                            <span id="cf-pos">CENTER</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Effetti -->
+                <div class="effects-section">
+                    <div class="effects-label">FX</div>
+                    <div class="fx-buttons">
+                        <button class="fx-btn" id="fx-echo"    onclick="toggleFX('echo')">ECHO</button>
+                        <button class="fx-btn" id="fx-reverb"  onclick="toggleFX('reverb')">REVERB</button>
+                        <button class="fx-btn" id="fx-flanger" onclick="toggleFX('flanger')">FLANGE</button>
+                        <button class="fx-btn" id="fx-filter"  onclick="toggleFX('filter')">FILTER</button>
+                    </div>
+                    <div class="fx-knob-wrap">
+                        <div class="knob" id="fx-depth" data-value="75"></div>
+                        <span class="label">DEPTH</span>
+                    </div>
+                </div>
+
+                <!-- Loop section -->
+                <div class="loop-section">
+                    <div class="loop-label">LOOP</div>
+                    <div class="loop-buttons">
+                        <button class="loop-btn" onclick="setLoop(0.5,this)">½</button>
+                        <button class="loop-btn" onclick="setLoop(1,this)">1</button>
+                        <button class="loop-btn" onclick="setLoop(2,this)">2</button>
+                        <button class="loop-btn" onclick="setLoop(4,this)">4</button>
+                        <button class="loop-btn" onclick="setLoop(8,this)">8</button>
+                    </div>
+                </div>
+
+                <!-- Broadcast -->
+                <div class="broadcast-section">
+                    <button class="broadcast-btn" id="broadcast-btn" onclick="toggleBroadcast()">
+                        📡 BROADCAST
+                    </button>
+                    <div class="broadcast-status" id="broadcast-status">OFF</div>
+                </div>
+            </div>
+
+            <!-- DECK B (destra) -->
+            <div class="deck deck-b">
+                <div class="deck-label">DECK B</div>
+
+                <!-- Giradischi -->
+                <div class="turntable-wrapper">
+                    <div class="turntable" id="turntable-b">
+                        <div class="vinyl">
+                            <div class="vinyl-label">
+                                <span id="track-name-b">NO TRACK</span>
+                            </div>
+                            <div class="vinyl-hole"></div>
+                            <div class="tonearm" id="tonearm-b"></div>
+                        </div>
+                        <div class="platter-base"></div>
+                    </div>
+                </div>
+
+                <!-- Info traccia -->
+                <div class="track-info">
+                    <div class="bpm-display">
+                        <span class="label">BPM</span>
+                        <span class="value" id="bpm-b">--</span>
+                    </div>
+                    <div class="time-display" id="time-b">0:00</div>
+                </div>
+
+                <!-- URL Input con history (datalist) -->
+                <div class="url-input-group">
+                    <input type="text" id="url-b" class="url-input"
+                           placeholder="URL Stream (radio, mp3...)"
+                           list="history-b" autocomplete="off">
+                    <datalist id="history-b"></datalist>
+                </div>
+
+                <!-- Controlli deck -->
+                <div class="deck-controls">
+                    <button class="btn-deck btn-cue">CUE</button>
+                    <button class="btn-deck btn-play" id="play-b" onclick="togglePlay('B')">▶ PLAY</button>
+                    <button class="btn-deck btn-stop" onclick="stopDeck('B')">■ STOP</button>
+                </div>
+
+                <!-- Pitch slider -->
+                <div class="pitch-control">
+                    <span class="label">PITCH</span>
+                    <input type="range" class="pitch-slider" id="pitch-b"
+                           min="-8" max="8" value="0" step="0.1"
+                           oninput="updatePitch('B', this.value)">
+                    <span class="pitch-value" id="pitch-val-b">0%</span>
+                </div>
+
+                <!-- EQ Deck B -->
+                <div class="eq-section">
+                    <div class="eq-knob-group">
+                        <div class="knob-wrap">
+                            <div class="knob" id="eq-hi-b" data-value="75"></div>
+                            <span>HI</span>
+                        </div>
+                        <div class="knob-wrap">
+                            <div class="knob" id="eq-mid-b" data-value="75"></div>
+                            <span>MID</span>
+                        </div>
+                        <div class="knob-wrap">
+                            <div class="knob" id="eq-lo-b" data-value="75"></div>
+                            <span>LO</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Volume fader deck B -->
+                <div class="fader-section">
+                    <span class="label">VOL</span>
+                    <input type="range" class="volume-fader vertical" id="vol-b"
+                           min="0" max="100" value="80"
+                           oninput="updateDeckVolume('B', this.value)">
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
